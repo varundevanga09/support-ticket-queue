@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support ticket queue</title>
+<style>*{box-sizing:border-box}body{max-width:740px;margin:8vh auto;padding:0 22px;background:#f6f8fa;color:#172d36;font:16px/1.6 Inter,Arial,sans-serif}h1{line-height:1.15;font-size:2.6rem}h2{font-size:1.2rem}section{background:white;border:1px solid #cad6da;border-radius:10px;padding:20px;margin:16px 0}input,button{font:inherit;padding:9px;border-radius:5px}input{width:min(100%,410px);border:1px solid #819598}button{background:#15585b;color:white;border:0;cursor:pointer}li{overflow-wrap:anywhere;border-bottom:1px solid #eee;padding:6px}a{color:#15585b}</style>
+<h1>Support ticket queue</h1><section><h2>Create a ticket</h2><form><label for="title">Public demo ticket · use sample details only</label><br><input id="title" maxlength="160" required placeholder="Receipt missing from test order"> <button>Add ticket</button></form><p role="status" id="message"></p></section>
+<section><h2>Open tickets</h2><ol id="queue"></ol></section><section><h2>Daily usage</h2><p id="usage"></p><a href="/usage">Seven-day counts</a> · <a href="/docs">API documentation</a></section>
+<script>
+const el=id=>document.getElementById(id);
+async function refresh(){
+ const responses=await Promise.all([fetch('/tickets'),fetch('/usage')]);
+ if(responses.some(r=>!r.ok))throw Error('Unable to load queue data.');
+ const [tickets,usage]=await Promise.all(responses.map(r=>r.json()));
+ el('queue').replaceChildren(...tickets.map(t=>{const li=document.createElement('li');li.textContent=t.title;return li}));
+ if(!tickets.length)el('queue').textContent='No open tickets.';
+ el('usage').textContent=Object.values(usage.daily_browsers)[0]+' unique browser(s) today · Pacific time';
+}
+document.querySelector('form').onsubmit=async e=>{
+ e.preventDefault();const btn=e.target.querySelector('button');btn.disabled=true;
+ try{const r=await fetch('/tickets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:el('title').value})});
+ if(!r.ok)throw Error('Could not create ticket. Enter a short title and try again.');
+ el('title').value='';el('message').textContent='Ticket created.';await refresh()}catch(e){el('message').textContent=e.message}finally{btn.disabled=false}
+};refresh().catch(e=>el('message').textContent=e.message);
+</script></html>

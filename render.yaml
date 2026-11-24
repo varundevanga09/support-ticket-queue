@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: support-ticket-queue
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn web:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_PATH
+        value: /var/data/tickets.sqlite3
+    disk:
+      name: queue-data
+      mountPath: /var/data
+      sizeGB: 1
